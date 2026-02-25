@@ -1,2 +1,2 @@
 # WorldOrder
-World Order is a project that uses many languages to create a cyber world through programming.
+A self-centered project to create your own cyber world using AI
