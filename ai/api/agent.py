@@ -3,6 +3,7 @@ import requests
 from planner import Planner
 from tools import Tools
 from memory import Memory
+from loop import AgentLoop
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
@@ -14,6 +15,7 @@ class DevAgent:
         self.planner = Planner()
         self.tools = Tools()
         self.memory = Memory()
+        self.loop = AgentLoop()
 
     def ask_llm(self, prompt):
 
@@ -26,6 +28,10 @@ class DevAgent:
         r = requests.post(OLLAMA_URL, json=payload)
 
         return r.json()["response"]
+        
+    def autonomous_fix(self, repo_path, error):
+
+        return self.loop.run(repo_path, error)
 
     def execute_goal(self, repo_path, goal):
 
