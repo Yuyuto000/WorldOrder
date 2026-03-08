@@ -1,19 +1,22 @@
-# AIエージェント
-
 import requests
 
-from git_scan import scan_repo
-from tasks import debug_code, build_project
+from planner import Planner
+from tools import Tools
+from memory import Memory
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
 
 class DevAgent:
 
+    def __init__(self):
+
+        self.planner = Planner()
+        self.tools = Tools()
+        self.memory = Memory()
+
     def ask_llm(self, prompt):
-        """
-        LLMへ問い合わせ
-        """
+
         payload = {
             "model": "mistral",
             "prompt": prompt,
@@ -21,47 +24,50 @@ class DevAgent:
         }
 
         r = requests.post(OLLAMA_URL, json=payload)
+
         return r.json()["response"]
 
-    def scan_repository(self, repo_path):
-        """
-        Gitリポジトリを解析
-        """
-        files = scan_repo(repo_path)
+    def execute_goal(self, repo_path, goal):
 
-        prompt = f"""
-        このGitリポジトリの構造を説明してください。
-
-        Files:
-        {files}
+        """
+        エージェント実行
         """
 
-        return self.ask_llm(prompt)
+        plan = self.planner.create_plan(goal)
 
-    def run_task(self, repo_path, task):
+        results = []
 
-        if task == "debug":
-            return debug_code(repo_path)
+        for step in plan:
 
-        if task == "build":
-            return build_project(repo_path)
+            if step == "scan_repository":
+                result = self.tools.scan_repository(repo_path)
 
-        return "unknown task"
+            elif step == "run_tests":
+                result = self.tools.run_tests(repo_path)
 
-    def generate_docs(self, repo_path):
+            elif step == "build_project":
+                result = self.tools.build_project(repo_path)
 
-        files = scan_repo(repo_path)
+            elif step == "generate_docs":
 
-        prompt = f"""
-        このプロジェクトのREADME.mdを生成してください
+                files = self.tools.scan_repository(repo_path)
 
-        Files:
-        {files}
+                prompt = f"""
+                このプロジェクトのREADME.mdを生成
 
-        必須
-        - プロジェクト説明
-        - API説明
-        - TODO
-        """
+                Files:
+                {files}
+                """
 
-        return self.ask_llm(prompt)
+                result = self.ask_llm(prompt)
+
+            else:
+                result = "unknown step"
+
+            self.memory.add({step: result})
+            results.append(result)
+
+        return {
+            "plan": plan,
+            "results": results
+        }
